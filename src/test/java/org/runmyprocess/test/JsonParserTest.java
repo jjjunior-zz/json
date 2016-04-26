@@ -67,42 +67,28 @@ public class JsonParserTest extends TestCase {
     }
 
     public void testParserArrayArithmetic() throws JSONException {
-        String o = "[1,2,3,-1,-2.2,-3.4e5,4.52e-4,6.7E8]";
+        String o = "[1,2,3,-1,-2.2,-3.4e5,4.52e-4,6.7E8,1.360,2.999999999]";
         JSONArray json = JSONArray.fromString(o);
 
-        assertEquals(8, json.size());
+        assertEquals(10, json.size());
         assertEquals(1L, json.get(0));
         assertEquals(-1L, json.get(3));
         assertEquals(-2.2, json.get(4));
         assertEquals(-340000.0, json.get(5));
         assertEquals(4.52e-4, json.get(6));
+        assertEquals(1.36, json.get(8));
+        assertEquals(2.999999999, json.get(9));
     }
 
     public void testParserComplexObject() throws JSONException {
-        String o = "{\"name\": \"Denis\", \"age\":3.9e1, \"work_address\":{\"street\":\"rue chauchat\", \"number\":22, \"city\":\"Paris\"},\"tags\":[false,true,null,1,\"titi\"]}";
+        String o = "{\"name\": \"Jean\", \"age\":3.9e1, \"work_address\":{\"street\":\"rue de la paix\", \"number\":22, \"city\":\"Paris\"},\"tags\":[false,true,null,1,\"titi\"]}";
         JSONObject json = JSONObject.fromString(o);
 
-        assertEquals("Denis", json.get("name").toString());
+        assertEquals("Jean", json.get("name").toString());
         assertEquals(39.0, json.get("age"));
         assertTrue(((JSON)json.get("tags")).isJSONArray());
         assertEquals(Boolean.FALSE, ((JSONArray)json.get("tags")).get(0));
         assertEquals(Boolean.TRUE, ((JSONArray)json.get("tags")).get(1));
-    }
-
-    public void testSerialization() {
-        String string1 = "{\"name\":\"Denis\",\"age\":3.9e1,\"work_address\":{\"street\":\"rue chauchat\",\"number\":22,\"city\":\"Paris\"},\"tags\":[false,true,null,1,\"titi\"]}";
-        JSONObject object1 = JSONObject.fromString(string1);
-        String string2 = object1.toString();
-
-        System.out.println( String.format("string1:%s\nstring2:%s", string1, string2));
-    }
-
-    public void testSerialization2() {
-        String string1 = "{\"name\":\"Sébastien\",\"age\":40,\"work_address\":{\"street\":\"\\\"rue\\\"\\nchauchat\",\"number\":22,\"city\":\"Paris\\tFrance\"},\"tags\":[false,true,null,1]}";
-        JSONObject object1 = JSONObject.fromString(string1);
-        String string2 = object1.toString();
-
-        System.out.println( String.format("string1:%s\nstring2:%s", string1, string2));
     }
 
     public void testUnquottedKey() {
@@ -114,11 +100,6 @@ public class JsonParserTest extends TestCase {
 
         assertEquals( strictObject.getInteger("a"), looseObject.getInteger("a"));
         assertEquals( strictObject.getInteger("b"), looseObject.getInteger("b"));
-        System.out.println(strictObject.toString());
-        System.out.println(looseObject.toString());
-
-        JSONObject object2 = JSONObject.fromString(looseObject.toString());
-        System.out.println(object2.toString());
     }
 
     public void testJSONSet() {
@@ -163,5 +144,12 @@ public class JsonParserTest extends TestCase {
         assertEquals( 1, (int)json.getInteger("a"));
         assertEquals( "2", json.getString("b"));
         assertEquals( "toto", json.getString("c"));
+    }
+
+    public void testAmpersand() {
+        String q = "{'make_model':'AT&T blue'}";
+        JSONObject json = JSONObject.fromString(q);
+        assertEquals(1, json.size());
+        assertEquals("AT&T blue", json.getString("make_model"));
     }
 }

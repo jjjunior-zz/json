@@ -18,18 +18,27 @@ public class StreamParser extends DefaultParser {
     private InputStreamReader reader;
     private char current;
 
-    public StreamParser( InputStream stream, String charset, JSON.Context context, JSON.Factory factory ) throws UnsupportedEncodingException {
-        super( null, context, factory );
+    public StreamParser( InputStream stream, String charset, JSON.Context context, JSON.Factory factory, long maxSize ) throws UnsupportedEncodingException {
+        super( null, context, factory, maxSize );
         setInputStreamReader(new InputStreamReader(stream, charset));
+    }
+    public StreamParser( InputStream stream, String charset, JSON.Context context, JSON.Factory factory) throws UnsupportedEncodingException {
+        this(stream, charset, context, factory, 0);
     }
     public StreamParser( InputStream stream, String charset ) throws UnsupportedEncodingException {
         this( stream, charset, null, null );
+    }
+    public StreamParser( InputStream stream, String charset, long maxSize ) throws UnsupportedEncodingException {
+        this( stream, charset, null, null, maxSize );
     }
     public StreamParser( InputStream stream, String charset, JSON.Context context )  throws UnsupportedEncodingException {
         this( stream, charset, context, null);
     }
     public StreamParser( InputStream stream, String charset, JSON.Factory factory )  throws UnsupportedEncodingException {
         this(stream, charset, null, factory);
+    }
+    public StreamParser( InputStream stream, String charset, JSON.Factory factory, long masSize )  throws UnsupportedEncodingException {
+        this(stream, charset, null, factory, masSize);
     }
 
     @Override
@@ -61,6 +70,23 @@ public class StreamParser extends DefaultParser {
             str.append(c);
         }
         return str.toString();
+    }
+
+    @Override
+    protected boolean acceptKeyword() throws JSONException {
+        StringBuilder str = new StringBuilder();
+        char c;
+        while (Character.isLowerCase(c = current())) {
+            str.append(c);
+            incIndex();
+        }
+        String kw = str.toString();
+        if( kw.length()>0 ) {
+            JSON.JSONKeyword keyword = JSON.JSONKeyword.valueOf(kw.toUpperCase());
+            return getContext().accept(keyword.toObject());
+        } else {
+            return false;
+        }
     }
 
     @Override

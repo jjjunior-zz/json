@@ -14,7 +14,7 @@ import java.io.StringWriter;
  * Time: 17:42
  */
 public class RunMyProcessTimingTest extends TestCase {
-    public final static String STRING_OBJECT = "{\n" +
+  public final static String STRING_OBJECT = "{\n" +
             "        \"id\": 0,\n" +
             "        \"guid\": \"d07b403f-52bb-4ee5-95b2-6033806adb3a\",\n" +
             "        \"isActive\": true,\n" +
@@ -56,6 +56,7 @@ public class RunMyProcessTimingTest extends TestCase {
             "        ],\n" +
             "        \"randomArrayItem\": \"cherry\"\n" +
             "    }";
+
 
     public final static int LOOPS = 50000;
 

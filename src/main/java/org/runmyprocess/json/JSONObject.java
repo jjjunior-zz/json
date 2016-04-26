@@ -4,10 +4,7 @@ import org.runmyprocess.json.parser.Parser;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * User: sgaide & dboulay
@@ -65,7 +62,7 @@ public class JSONObject extends JSON implements Map<String,Object> {
     public void putAll(Map<? extends String, ?> map) {
         if( map != null ) {
             for(Map.Entry entry : map.entrySet() ) {
-                put( (String)entry.getKey(), sanitize(entry.getValue()));
+                put( (String)entry.getKey(), entry.getValue());
             }
         }
     }
@@ -75,7 +72,7 @@ public class JSONObject extends JSON implements Map<String,Object> {
             for(Map.Entry entry : map.entrySet() ) {
                 String entryKey = entry.getKey().toString();
                 if( !entryKey.equals(key) )
-                    put( entryKey, sanitize(entry.getValue()));
+                    put( entryKey, entry.getValue());
             }
         }
     }
@@ -85,7 +82,7 @@ public class JSONObject extends JSON implements Map<String,Object> {
             for(Map.Entry entry : map.entrySet() ) {
                 String entryKey = entry.getKey().toString();
                 if( !keys.contains(entryKey) )
-                    put( entryKey, sanitize(entry.getValue()));
+                    put( entryKey, entry.getValue());
             }
         }
     }
@@ -104,11 +101,6 @@ public class JSONObject extends JSON implements Map<String,Object> {
 
     public Set<Entry<String,Object>> entrySet() {
         return data.entrySet();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return data.equals(o);
     }
 
     @Override
@@ -387,5 +379,33 @@ public class JSONObject extends JSON implements Map<String,Object> {
             put( key, object );
             return this;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == data) return true;
+
+        if (!(o instanceof Map)) return false;
+        Map m = (Map) o;
+        if (m.size() != size()) return false;
+
+        try {
+            Iterator<Entry<String,Object>> i = entrySet().iterator();
+            while (i.hasNext()) {
+                Entry<String,Object> e = i.next();
+                String key = e.getKey();
+                Object value = e.getValue();
+                if (value == null) {
+                    if (!(m.get(key)==null && m.containsKey(key))) return false;
+                } else {
+                    if (!value.equals(m.get(key))) return false;
+                }
+            }
+        } catch (ClassCastException unused) {
+            return false;
+        } catch (NullPointerException unused) {
+            return false;
+        }
+        return true;
     }
 }

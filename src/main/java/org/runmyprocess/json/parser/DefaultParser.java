@@ -1,8 +1,12 @@
 package org.runmyprocess.json.parser;
 
-import org.runmyprocess.json.*;
+import org.runmyprocess.json.JSON;
+import org.runmyprocess.json.JSONException;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * User: sgaide & dboulay
@@ -11,27 +15,46 @@ import java.util.HashMap;
  */
 public class DefaultParser implements Parser {
 
+    private long maxSize;
+    private long size;
     private String text;
+    private char[] characters;
+    private char[] buffer;
     private int index;
     private JSON.Context context;
     protected JSON.Factory factory;
 
-    public DefaultParser( String text, JSON.Context context, JSON.Factory factory ) {
+    public DefaultParser( String text, JSON.Context context, JSON.Factory factory, long maxSize ) {
         this.context = context != null ? context : new JSON.Context();
         this.factory = factory != null ? factory : JSON.factory;
         setText(text);
+        buffer = new char[0];
+        this.maxSize = maxSize;
+        this.size = 0;
+    }
+    public DefaultParser( String text, JSON.Context context, JSON.Factory factory) {
+        this(text, context, factory, 0);
     }
     public DefaultParser( String text, JSON.Context context ) {
         this( text, context, null);
     }
+    public DefaultParser( String text, JSON.Context context, long maxSize ) {
+        this( text, context, null, maxSize);
+    }
     public DefaultParser( String text, JSON.Factory factory ) {
         this( text, null, factory);
+    }
+    public DefaultParser( String text, JSON.Factory factory, long maxSize ) {
+        this( text, null, factory, maxSize);
     }
     public DefaultParser( String text ) {
         this( text, null, null);
     }
+    public DefaultParser( String text, long maxSize ) {
+        this( text, null, null, maxSize);
+    }
     protected DefaultParser() {
-        this(null, null, null);
+        this(null);
     }
 
     private static class HexaMap extends HashMap<Character,Integer> {
@@ -120,12 +143,21 @@ public class DefaultParser implements Parser {
     }
 
     protected char current() {
-        return this.getText().charAt(getIndex());
+        return characters[index];
+    }
+
+    private char getCurrent() {
+        accept();
+        return current();
+    }
+
+    protected void accept() throws JSONException{
+        if (maxSize > 0 && ++size > maxSize) throw new JSONException("Max size reached");
     }
 
     protected char currentIgnoreSpace() {
         while( true ) {
-            char c = current();
+            char c = getCurrent();
             if( Character.isWhitespace(c) ) {
                 incIndex();
             } else {
@@ -135,13 +167,11 @@ public class DefaultParser implements Parser {
     }
 
     protected boolean acceptKeyword() throws JSONException {
-        StringBuilder str = new StringBuilder();
-        char c;
-        while (Character.isLowerCase(c = current())) {
-            str.append(c);
+        int startIndex = getIndex();
+        while (Character.isLowerCase(getCurrent())) {
             incIndex();
         }
-        String kw = str.toString();
+        String kw = getText().substring(startIndex, getIndex());
         if( kw.length()>0 ) {
             JSON.JSONKeyword keyword = JSON.JSONKeyword.valueOf(kw.toUpperCase());
             return getContext().accept(keyword.toObject());
@@ -151,20 +181,35 @@ public class DefaultParser implements Parser {
     }
 
     protected String acceptStringInternal( char endString ) {
-        StringBuilder str = new StringBuilder();
-        int startIndex = getIndex();
+        int startPos = getIndex();
         char c;
-        while ((c = current()) != endString ) {
+        int length = 0;
+        List<Integer> jumpIndex = new ArrayList<Integer>();
+        while ((c = getCurrent()) != endString ) {
             incIndex();
             if( c == JSON.ESCAPE ){
-                str.append(getText().substring(startIndex, getIndex()-1));
+                int start = getIndex() - 1;
                 c = getEscapedChar(endString);
-                str.append(c);
-                startIndex = getIndex();
+                characters[start] = c;
+                jumpIndex.add(start + 1);
+                jumpIndex.add(getIndex());
             }
+            ++length;
         }
-        str.append(getText().substring(startIndex, getIndex()));
-        return str.toString();
+        if (jumpIndex.size() > 0) {
+            int destPos = 0;
+            buffer = length < buffer.length?buffer:new char[length];
+            for (int pos = 0; pos < jumpIndex.size(); pos+=2) {
+                int endPos = jumpIndex.get(pos);
+                System.arraycopy(characters, startPos, buffer, destPos, endPos - startPos);
+                destPos += endPos - startPos;
+                startPos = jumpIndex.get(pos + 1);
+            }
+            System.arraycopy(characters, startPos, buffer, destPos, length - destPos);
+            return new String(buffer, 0, length);
+        }else{
+            return getText().substring(startPos, startPos+length);
+        }
     }
 
     protected boolean acceptString() throws JSONException {
@@ -191,7 +236,7 @@ public class DefaultParser implements Parser {
     }
 
     protected char getEscapedChar(char endString) throws JSONException {
-        char c = current();
+        char c = getCurrent();
         incIndex();
         switch( c ) {
             case '/':
@@ -211,35 +256,45 @@ public class DefaultParser implements Parser {
     protected char getUnicodeChar() {
         int value = 0;
         for( int i=0; i<4; ++i ) {
-            char c = current();
-            value *= 10;
+            char c = getCurrent();
+            value *= 16;
             value += hexaMap.getValue(Character.toUpperCase(c));
             this.incIndex();
         }
-        return (char)value;
+        return Character.toChars(value)[0];
     }
 
     protected boolean acceptNumber() throws JSONException {
         Number result = null;
+        int sign = 1;
         char c = currentIgnoreSpace();
-        if( Character.isDigit(c) || c==JSON.MINUS ) {
+        if( c == JSON.MINUS ) {
+            sign = -1;
+            incIndex();
+            c = getCurrent();
+        }
+        if( Character.isDigit(c) ) {
             long value = getLong();
 
-            c = current();
+            c = getCurrent();
             if( c == JSON.DECIMAL_SEPARATOR ) {
                 incIndex();
-                c = current();
+                c = getCurrent();
                 double decimalPart = 0;
                 double divider = 1;
+                int length = 0;
                 while (Character.isDigit(c)) {
                     decimalPart *= 10;
                     divider *= 10;
                     decimalPart += (int) c - (int) '0';
                     this.incIndex();
-                    c = current();
+                    c = getCurrent();
+                    ++length;
                 }
-                result = value+(value == 0?1:Math.signum(value))*decimalPart/divider;
-            } else result = value;
+                // Use of BigDecimal Object because 1+0.36=1.3599999999999999 (ticket #8086)
+                BigDecimal exact = new BigDecimal(value).add(new BigDecimal(decimalPart / divider)).setScale(length, BigDecimal.ROUND_HALF_DOWN);
+                result = sign*exact.doubleValue();
+            } else result = sign*value;
 
             if( c == JSON.LOWER_EXP || c == JSON.UPPER_EXP ) {
                 incIndex();
@@ -252,7 +307,7 @@ public class DefaultParser implements Parser {
 
     protected long getLong() {
         int sign = 1;
-        if( current() == JSON.MINUS ) {
+        if( getCurrent() == JSON.MINUS ) {
             sign = -1;
             incIndex();
         }
@@ -261,12 +316,12 @@ public class DefaultParser implements Parser {
 
     protected long getPositiveLong(){
         long value = 0;
-        char c = current();
+        char c = getCurrent();
         while (Character.isDigit(c)) {
             value *= 10;
             value += (int) c - (int) '0';
             this.incIndex();
-            c = current();
+            c = getCurrent();
         }
         return value;
     }
@@ -373,6 +428,11 @@ public class DefaultParser implements Parser {
 
     protected void setText( String text ) {
         this.text = text;
+        setCharacters(text);
+    }
+
+    protected void setCharacters(String text){
+        characters = text != null?text.toCharArray():null;
     }
 
     protected int getIndex() {
@@ -383,7 +443,7 @@ public class DefaultParser implements Parser {
     }
 
     protected void incIndex() {
-        ++this.index;
+        ++index;
     }
 
     protected JSON.Context getContext() {

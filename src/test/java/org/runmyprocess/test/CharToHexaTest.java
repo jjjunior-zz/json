@@ -12,8 +12,14 @@ import org.runmyprocess.json.JSONObject;
 public class CharToHexaTest extends TestCase {
 
     public void testHexaConvert() throws JSONException {
-        String json = "{\"a\":\"toto bidule \u0041\"}";
+        String json = "{\"a\":\"texte ici \\u0041\"}";
         JSONObject object = JSONObject.fromString(json);
-        assertEquals("toto bidule A", object.get("a"));
+        assertEquals("texte ici A", object.get("a"));
+    }
+
+    public void testHexaConvert2() throws JSONException {
+        String json = "{\"name\":\"foo\\u00f4bar\"}";
+        JSONObject object = JSONObject.fromString(json);
+        assertEquals("fooôbar", object.get("name"));
     }
 }

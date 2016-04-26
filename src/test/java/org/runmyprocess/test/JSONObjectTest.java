@@ -74,4 +74,14 @@ public class JSONObjectTest extends TestCase {
 
 
     }
+
+    public void testNumbers() {
+        JSONObject json = JSONObject.fromString("{a:-0.08, b:-0.2, c:-200, d:-4.13, e:32, f:1.35}");
+        assertEquals( json.getNumber("c").intValue(), -200);
+        assertEquals( json.getNumber("a").doubleValue(), -0.08);
+        assertEquals( json.getNumber("b").doubleValue(), -0.2);
+        assertEquals( json.getNumber("d").doubleValue(), -4.13);
+        assertEquals( json.getNumber("e").longValue(), 32);
+        assertEquals( json.getNumber("f").doubleValue(), 1.35);
+    }
 }

@@ -401,7 +401,8 @@ public abstract class JSON implements Serializable {
                         return object;
                     }
                     public void appendJSONValue(StringBuilder builder, Object object) {
-                        builder.append(object.toString());
+                        String stringValue = object.toString();
+                        builder.append("NaN".equals(stringValue)?null:stringValue);
                     }
                 });
                 put( Boolean.class, new Converter() {
@@ -623,7 +624,9 @@ public abstract class JSON implements Serializable {
     protected void accepted( JSON object ){}
     public abstract void appendJSON(StringBuilder builder);
     public abstract void appendJSON(Writer writer) throws IOException;
-
+    public abstract int size();
+    public abstract boolean isEmpty();
+    public abstract void clear();
     /**
      *
      * @return string representation of this json object

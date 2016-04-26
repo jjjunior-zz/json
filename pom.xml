@@ -6,7 +6,7 @@
 
     <groupId>org.runmyprocess</groupId>
     <artifactId>json</artifactId>
-    <version>1.7.9</version>
+    <version>1.9.1</version>
     <packaging>jar</packaging>
 
     <properties>
